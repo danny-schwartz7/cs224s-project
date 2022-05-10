@@ -1,26 +1,17 @@
 from collections import OrderedDict
-from itertools import chain
 
 # import h5py
 import math
 import json
 import torch
-import wandb
 import numpy as np
-import pytorch_lightning as pl
 from glob import glob
 import librosa
 from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch.nn.functional as F
-import random
-from sklearn.metrics import f1_score
 from typing import *
 #from IPython.display import Audio
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import WandbLogger
-from collections import namedtuple
 from Constants import SPEAKER_MAPPING
 
 from utils import (
@@ -47,11 +38,12 @@ def preprocess_libri(sample, append_eos_token=False, eos_index=1, num_special_to
   return sample
 
 
-ItemClass = namedtuple("ItemClass", ["input_feature",
-                                     "input_length",
-                                     "human_transcript_label",
-                                     "human_transcript_length",
-                                     "speaker_idx"])
+class ItemClass(NamedTuple):
+  input_feature: torch.Tensor
+  input_length: int
+  human_transcript_label: torch.Tensor
+  human_transcript_length: int
+  speaker_idx: int
 
 class LibriDatasetAdapter(Dataset):
     def __init__(self, hf_ds: datasets.Dataset, n_mels=64, n_fft=256, win_length=256, 
