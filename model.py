@@ -1472,7 +1472,9 @@ config = {
     'encoder_hidden_dim': 256, 
     'encoder_bidirectional': True,
     'teacher_force_prob': 0.9,
-
+    'ctc_weight': 0.5,
+    'asr_weight': 0.5,
+    'speaker_id_weight': 0.5
 }
 
 # NOTES:
