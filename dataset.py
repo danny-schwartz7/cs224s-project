@@ -10,7 +10,7 @@ import librosa
 from torch.utils.data import Dataset
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import *
+from typing import * # type: ignore
 #from IPython.display import Audio
 from Constants import SPEAKER_MAPPING
 
@@ -38,6 +38,22 @@ def preprocess_libri(sample, append_eos_token=False, eos_index=1, num_special_to
   return sample
 
 
+class LibriSampleAudio(TypedDict):
+  path: str
+  array: np.ndarray
+  sampling_rate: int
+
+class LibriSample(TypedDict):
+  file: str
+  audio: dict
+  text: str
+  speaker_id: int
+  chapter_id: int
+  id: str
+
+class ProcessedLibriSample(LibriSample):
+  processed_text: torch.Tensor
+
 class ItemClass(NamedTuple):
   input_feature: torch.Tensor
   input_length: int
@@ -46,7 +62,7 @@ class ItemClass(NamedTuple):
   speaker_idx: int
 
 class LibriDatasetAdapter(Dataset):
-    def __init__(self, hf_ds: datasets.Dataset, n_mels=64, n_fft=256, win_length=256, 
+    def __init__(self, hf_ds: datasets.Dataset, n_mels=64, n_fft=256, win_length=256, # type: ignore 
             hop_length=128, wav_max_length=4370, transcript_max_length=580, # 576 is the max num of chars
             append_eos_token=False):
 
@@ -108,7 +124,7 @@ class LibriDatasetAdapter(Dataset):
         """Serves primary task data for a single utterance."""
         # TODO: Improve efficiency
 
-        sample = self.hf_ds[index]
+        sample : ProcessedLibriSample = self.hf_ds[index] # type: ignore
         wav = sample['audio']['array']
         wav_sr = sample['audio']['sampling_rate']
         text = sample['processed_text']

@@ -176,7 +176,7 @@ class Speller(nn.Module):
             log_probs_seq.append(log_probs.unsqueeze(1))
 
             if teacher_force:
-                gt_tok = ground_truth[:, step:step + 1].float()
+                gt_tok = ground_truth[:, step:step + 1].float() # type: ignore
                 output_tok = torch.zeros_like(log_probs)
                 for idx, i in enumerate(gt_tok):
                     output_tok[idx, int(i.item())] = 1

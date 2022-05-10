@@ -86,4 +86,4 @@ config = {
 # - Every validation loop, the best performing model is saved.
 # - After training, the system will evaluate performance on the test set.
 if __name__ == '__main__':
-  run(system="LightningCTCLASMTL", config=config, ckpt_dir='ctc', epochs=35, use_gpu=True, resume=True)
+  run(system="LightningCTCLASMTL", config=config, ckpt_dir='ctc-las-mtl', epochs=35, use_gpu=True, resume=True)

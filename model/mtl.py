@@ -210,22 +210,13 @@ class LightningCTCMTL(LightningCTC):
         asr_loss, asr_metrics, embedding = self.get_primary_task_loss(batch, split)
 
         # Note: Not all of these have to be used (it is up to your design)
-        task_type_labels = None
-        dialog_acts_labels = None
-        sentiment_labels = None
         speaker_id_log_probs = None
-        dialog_acts_probs = None
-        sentiment_log_probs = None
-        speaker_loss = None
-        dialog_acts_loss = None
-        sentiment_loss = None
-        combined_loss = None
         ############################ START OF YOUR CODE ############################
         # TODO(4.3)
         # Implement multi-task learning by combining multiple objectives.
         # Define `combined_loss` here.
 
-        batch_len = len(batch)
+        # batch_len = len(batch)
         # task_type_labels, dialog_acts_labels, sentiment_labels = batch[batch_len - 3], batch[batch_len - 2], batch[
         #     batch_len - 1]
 
@@ -248,44 +239,25 @@ class LightningCTCMTL(LightningCTC):
             # you do not plan to use.
 
             # TASK_TYPE: Compare predicted task type to true task type.
-            task_type_preds = torch.argmax(speaker_id_log_probs, dim=1)
-            task_type_acc = \
-                (task_type_preds == task_type_labels).float().mean().item()
-
-            # DIALOG_ACTS: Compare predicted dialog actions to true dialog actions.
-            dialog_acts_preds = torch.round(dialog_acts_probs)
-            dialog_acts_f1 = f1_score(dialog_acts_labels.cpu().numpy().reshape(-1),
-                                      dialog_acts_preds.cpu().numpy().reshape(-1))
-
-            # SENTIMENT: Compare largest predicted sentiment to largest true sentim
-            sentiment_preds = torch.argmax(sentiment_log_probs, dim=1)
-            sentiment_labels = torch.argmax(sentiment_labels, dim=1)
-            sentiment_acc = \
-                (sentiment_preds == sentiment_labels).float().mean().item()
+            speaker_id_preds = torch.argmax(speaker_id_log_probs, dim=1)
+            speaker_id_acc = \
+                (speaker_id_preds == speaker_id_labels).float().mean().item()
 
             metrics = {
                 # Task losses.
                 f'{split}_asr_loss': asr_metrics[f'{split}_loss'],
-                f'{split}_task_type_loss': speaker_loss,
-                f'{split}_dialog_acts_loss': dialog_acts_loss,
-                f'{split}_sentiment_loss': sentiment_loss,
+                f'{split}_speaker_id_loss': speaker_loss,
                 # CER as ASR metric.
                 f'{split}_asr_cer': asr_metrics[f'{split}_cer'],
-                # Accuracy as task_type metric.
-                f'{split}_task_type_acc': task_type_acc,
-                # F1 score as dialog_acts metric.
-                f'{split}_dialog_acts_f1': dialog_acts_f1,
                 # Accuracy as sentiment metric.
-                f'{split}_sentiment_acc': sentiment_acc,
+                f'{split}_speaker_id_acc': speaker_id_acc,
             }
             ############################ END OF YOUR CODE ############################
         return combined_loss, metrics
 
     def configure_optimizers(self):
         parameters = chain(self.model.parameters(),
-                           self.speaker_id_model.parameters(),
-                           self.dialog_acts_model.parameters(),
-                           self.sentiment_model.parameters())
+                           self.speaker_id_model.parameters())
         optim = torch.optim.AdamW(parameters, lr=self.lr,
                                   weight_decay=self.weight_decay)
         return [optim], []
@@ -628,3 +600,4 @@ class LightningLASMTL(LightningCTCMTL):
       pad_index=self.train_dataset.pad_index,
       label_smooth=self.asr_label_smooth)
     return loss
+
