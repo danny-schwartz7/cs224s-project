@@ -1,1 +1,4 @@
 .idea/**/*
+trained_models/*
+wandb/*
+__pycache__
