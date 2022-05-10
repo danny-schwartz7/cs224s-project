@@ -20,6 +20,8 @@ from typing import *
 #from IPython.display import Audio
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
+from collections import namedtuple
+from Constants import SPEAKER_MAPPING
 
 from utils import (
   prune_transcripts, pad_wav, pad_transcript_label, get_transcript_labels,
@@ -43,7 +45,13 @@ def preprocess_libri(sample, append_eos_token=False, eos_index=1, num_special_to
     processed_text.append(eos_index)
   sample['processed_text'] = processed_text
   return sample
-  
+
+
+ItemClass = namedtuple("ItemClass", ["input_feature",
+                                     "input_length",
+                                     "human_transcript_label",
+                                     "human_transcript_length",
+                                     "speaker_idx"])
 
 class LibriDatasetAdapter(Dataset):
     def __init__(self, hf_ds: datasets.Dataset, n_mels=64, n_fft=256, win_length=256, 
@@ -116,8 +124,10 @@ class LibriDatasetAdapter(Dataset):
 
         input_feature, input_length = self.transform_wav(wav, wav_sr)
         human_transcript_label, human_transcript_length = self.transform_text(text)
+        speaker_idx = SPEAKER_MAPPING[speaker_id]
 
-        return input_feature, input_length, human_transcript_label, human_transcript_length# TODO: , speaker_id
+        #return input_feature, input_length, human_transcript_label, human_transcript_length# TODO: , speaker_id
+        return ItemClass(input_feature, input_length, human_transcript_label, human_transcript_length, speaker_idx)
 
     def transform_wav(self, wav, sr):
         mel_feats = librosa.feature.melspectrogram(y=wav, sr=sr, 
