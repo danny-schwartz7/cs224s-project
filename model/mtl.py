@@ -285,18 +285,10 @@ class LightningCTCMTL(LightningCTC):
                                           for elem in outputs]).float().mean(),
             'val_asr_cer': torch.tensor([elem['val_asr_cer']
                                          for elem in outputs]).float().mean(),
-            'val_task_type_loss': torch.tensor([elem['val_task_type_loss']
+            'val_speaker_id_loss': torch.tensor([elem['val_speaker_id_loss']
                                                 for elem in outputs]).float().mean(),
-            'val_task_type_acc': torch.tensor([elem['val_task_type_acc']
+            'val_speaker_id_acc': torch.tensor([elem['val_speaker_id_acc']
                                                for elem in outputs]).float().mean(),
-            'val_dialog_acts_loss': torch.tensor([
-                elem['val_dialog_acts_loss'] for elem in outputs]).float().mean(),
-            'val_dialog_acts_f1': torch.tensor([elem['val_dialog_acts_f1']
-                                                for elem in outputs]).float().mean(),
-            'val_sentiment_loss': torch.tensor([elem['val_sentiment_loss']
-                                                for elem in outputs]).float().mean(),
-            'val_sentiment_acc': torch.tensor([elem['val_sentiment_acc']
-                                               for elem in outputs]).float().mean()
         }
         ############################# END OF YOUR CODE #############################
         # self.log('val_asr_loss', metrics['val_asr_loss'], prog_bar=True)
@@ -317,18 +309,10 @@ class LightningCTCMTL(LightningCTC):
                                            for elem in outputs]).float().mean(),
             'test_asr_cer': torch.tensor([elem['test_asr_cer']
                                           for elem in outputs]).float().mean(),
-            'test_task_type_loss': torch.tensor([elem['test_task_type_loss']
+            'test_speaker_id_loss': torch.tensor([elem['test_speaker_id_loss']
                                                  for elem in outputs]).float().mean(),
-            'test_task_type_acc': torch.tensor([elem['test_task_type_acc']
+            'test_speaker_id_acc': torch.tensor([elem['test_speaker_id_acc']
                                                 for elem in outputs]).float().mean(),
-            'test_dialog_acts_loss': torch.tensor([
-                elem['test_dialog_acts_loss'] for elem in outputs]).float().mean(),
-            'test_dialog_acts_f1': torch.tensor([elem['test_dialog_acts_f1']
-                                                 for elem in outputs]).float().mean(),
-            'test_sentiment_loss': torch.tensor([elem['test_sentiment_loss']
-                                                 for elem in outputs]).float().mean(),
-            'test_sentiment_acc': torch.tensor([elem['test_sentiment_acc']
-                                                for elem in outputs]).float().mean()
         }
         ############################# END OF YOUR CODE #############################
         # self.log('test_asr_loss', metrics['test_asr_loss'], prog_bar=True)

@@ -63,7 +63,7 @@ class ItemClass(NamedTuple):
 
 class LibriDatasetAdapter(Dataset):
     def __init__(self, hf_ds: datasets.Dataset, n_mels=64, n_fft=256, win_length=256, # type: ignore 
-            hop_length=128, wav_max_length=4370, transcript_max_length=580, # 576 is the max num of chars
+            hop_length=128, wav_max_length=2192, transcript_max_length=580, # 576 is the max num of chars
             append_eos_token=False):
 
         hf_ds = hf_ds.filter(lambda example: len(example['text'].split()) >= 5)
