@@ -60,9 +60,15 @@ config = {
     'learning_rate': 1e-3, 
     'batch_size': 128, 
     'weight_decay': 0, 
-    'encoder_num_layers': 2, 
+    'encoder_num_layers': 3, 
     'encoder_hidden_dim': 256, 
     'encoder_bidirectional': True,
+    'encoder_dropout': 0,
+    'decoder_hidden_dim': 128,  # must be 2 x encoder_hidden_dim
+    'decoder_num_layers': 2,
+    'decoder_multi_head': 1,
+    'decoder_mlp_dim': 64,
+    'asr_label_smooth': 0.1,
     'teacher_force_prob': 0.9,
     'ctc_weight': 0.5,
     'asr_weight': 0.5,
@@ -80,4 +86,4 @@ config = {
 # - Every validation loop, the best performing model is saved.
 # - After training, the system will evaluate performance on the test set.
 if __name__ == '__main__':
-  run(system="LightningCTCLASMTL", config=config, ckpt_dir='ctc', epochs=20, use_gpu=True, resume=True)
+  run(system="LightningCTCLASMTL", config=config, ckpt_dir='ctc', epochs=35, use_gpu=True, resume=True)
