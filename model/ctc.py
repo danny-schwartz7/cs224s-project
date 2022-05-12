@@ -177,7 +177,8 @@ class LightningCTC(pl.LightningModule):
   def __init__(self, n_mels=128, n_fft=256, win_length=256, hop_length=128, 
                wav_max_length=200, transcript_max_length=200, 
                learning_rate=1e-3, batch_size=256, weight_decay=1e-5, 
-               encoder_num_layers=2, encoder_hidden_dim=256, 
+               encoder_num_layers=2, encoder_hidden_dim=256,
+               fmin=0, fmax=8000, sr=22050, 
                encoder_bidirectional=True):
     super().__init__()
     self.save_hyperparameters()
@@ -190,6 +191,9 @@ class LightningCTC(pl.LightningModule):
     self.weight_decay = weight_decay
     self.wav_max_length = wav_max_length
     self.transcript_max_length = transcript_max_length
+    self.fmin = fmin
+    self.fmax = fmax
+    self.sr = sr
     self.train_dataset, self.val_dataset, self.test_dataset = \
       self.create_datasets()
     self.encoder_num_layers = encoder_num_layers
@@ -214,18 +218,21 @@ class LightningCTC(pl.LightningModule):
         win_length=self.win_length, hop_length=self.hop_length,
         wav_max_length=self.wav_max_length,
         transcript_max_length=self.transcript_max_length,
+        fmin=self.fmin, fmax=self.fmax, sr=self.sr,
         append_eos_token=False)
     val_dataset = LibriDatasetAdapter(
         datasets.load_dataset('librispeech_asr', 'clean', split='validation'), n_mels=self.n_mels, n_fft=self.n_fft, # type: ignore
         win_length=self.win_length, hop_length=self.hop_length, 
         wav_max_length=self.wav_max_length,
         transcript_max_length=self.transcript_max_length,
+        fmin=self.fmin, fmax=self.fmax, sr=self.sr,
         append_eos_token=False) 
     test_dataset = LibriDatasetAdapter(
         datasets.load_dataset('librispeech_asr', 'clean', split='test'), n_mels=self.n_mels, n_fft=self.n_fft, # type: ignore
         win_length=self.win_length, hop_length=self.hop_length,
         wav_max_length=self.wav_max_length,
         transcript_max_length=self.transcript_max_length,
+        fmin=self.fmin, fmax=self.fmax, sr=self.sr,
         append_eos_token=False) 
     return train_dataset, val_dataset, test_dataset
 

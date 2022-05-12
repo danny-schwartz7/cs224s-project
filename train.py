@@ -8,6 +8,8 @@ from pytorch_lightning.loggers import WandbLogger
 import os
 import glob
 
+import numpy as np
+
 MODEL_PATH = 'trained_models'
 
 WANDB_NAME = 'anivegesana' # Fill in your Weights & Biases ID here.
@@ -80,40 +82,62 @@ def run(system, config, ckpt_dir, epochs=1, monitor_key='val_loss',
 # }
 
 
-# n_mels = 80,
-# 
-# n_fft: ,
-# hop_length: 256,
-
-
-
   # "min_level_db": -100,
   # "ref_level_db": 20,
+
+# config = {
+#     'n_mels': 80, 
+#     'n_fft': 1024,
+#     'fmin': 125,
+#     'fmax': 7600,
+#     'sr': 22050,
+#     'win_length': 512,
+#     'hop_length': 256,
+#     'wav_max_length': 2192,
+#     'transcript_max_length': 580,
+#     'learning_rate': 1e-5, #1e-3, 
+#     'batch_size': 16,
+#     'weight_decay': 0, 
+#     'encoder_num_layers': 2,
+#     'encoder_hidden_dim': 128,
+#     'encoder_bidirectional': True,
+#     'encoder_dropout': 0,
+#     'decoder_hidden_dim': 256,  # must be 2 x encoder_hidden_dim
+#     'decoder_num_layers': 2,
+#     'decoder_multi_head': 1,
+#     'decoder_mlp_dim': 64,
+#     'asr_label_smooth': 0.1,
+#     'teacher_force_prob': 0.9,
+#     'ctc_weight': 0.5,
+#     'asr_weight': 0.5,
+#     'speaker_id_weight': 0.5
+# }
+
 
 config = {
     'n_mels': 80, 
     'n_fft': 1024,
-    'fmin': 125,
-    'fmax': 7600,
+    'fmin': 0,
+    'fmax': 8000,
     'sr': 22050,
-    'win_length': 512,
+    'win_length': 1024,
     'hop_length': 256,
-    'wav_max_length': 2192,
+    'wav_max_length': 3024,
     'transcript_max_length': 580,
     'learning_rate': 1e-5, #1e-3, 
-    'batch_size': 16,
+    'batch_size': 6,
     'weight_decay': 0, 
     'encoder_num_layers': 2,
-    'encoder_hidden_dim': 128,
+    'encoder_hidden_dim': 256,
     'encoder_bidirectional': True,
-    'encoder_dropout': 0,
-    'decoder_hidden_dim': 256,  # must be 2 x encoder_hidden_dim
+    'encoder_dropout': 0.3,
+    'decoder_hidden_dim': 512,  # must be 2 x encoder_hidden_dim
     'decoder_num_layers': 2,
     'decoder_multi_head': 1,
     'decoder_mlp_dim': 64,
     'asr_label_smooth': 0.1,
     'teacher_force_prob': 0.9,
-    'ctc_weight': 0.5,
+    'ctc_weight': 0.3,
     'asr_weight': 0.5,
     'speaker_id_weight': 0.5
 }
@@ -129,4 +153,4 @@ config = {
 # - Every validation loop, the best performing model is saved.
 # - After training, the system will evaluate performance on the test set.
 if __name__ == '__main__':
-  run(system="LightningCTCLASMTL", config=config, ckpt_dir='ctc-las-mtl', epochs=35, use_gpu=True, resume=True, monitor_key='val_asr_loss')
+  run(system="LightningCTCLASMTL", config=config, ckpt_dir='wavglow-inputshape', epochs=35, use_gpu=True, resume=True, monitor_key='val_asr_loss')

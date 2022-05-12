@@ -61,12 +61,15 @@ class ItemClass(NamedTuple):
   human_transcript_length: int
   speaker_idx: int
 
+def _filter_min_words(example, min_length=5):
+  return len(example['text'].split()) >= min_length
+
 class LibriDatasetAdapter(Dataset):
     def __init__(self, hf_ds: datasets.Dataset, n_mels=64, n_fft=256, win_length=256, # type: ignore 
             hop_length=128, wav_max_length=2192, transcript_max_length=580, # 576 is the max num of chars
             append_eos_token=False, fmin=125, fmax=7600, sr=22050):
 
-        hf_ds = hf_ds.filter(lambda example: len(example['text'].split()) >= 5)
+        hf_ds = hf_ds.filter(_filter_min_words)
         self.wav_max_length = wav_max_length
         self.transcript_max_length = transcript_max_length
 

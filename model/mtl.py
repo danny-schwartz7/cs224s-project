@@ -157,7 +157,8 @@ class LightningCTCMTL(LightningCTC):
                  wav_max_length=200, transcript_max_length=200,
                  learning_rate=1e-3, batch_size=256, weight_decay=1e-5,
                  encoder_num_layers=2, encoder_hidden_dim=256,
-                 encoder_bidirectional=True, asr_weight=1.0, speaker_id_weight=1.0):
+                 encoder_bidirectional=True, asr_weight=1.0, speaker_id_weight=1.0,
+                 fmin=0, fmax=8000, sr=22050):
         super().__init__(
             n_mels=n_mels, hop_length=hop_length,
             wav_max_length=wav_max_length,
@@ -167,7 +168,8 @@ class LightningCTCMTL(LightningCTC):
             weight_decay=weight_decay,
             encoder_num_layers=encoder_num_layers,
             encoder_hidden_dim=encoder_hidden_dim,
-            encoder_bidirectional=encoder_bidirectional)
+            encoder_bidirectional=encoder_bidirectional,
+            fmin=fmin, fmax=fmax, sr=sr)
         self.save_hyperparameters()
         self.asr_weight = asr_weight
         self.speaker_id_weight = speaker_id_weight
@@ -187,6 +189,7 @@ class LightningCTCMTL(LightningCTC):
             win_length=self.win_length, hop_length=self.hop_length,
             wav_max_length=self.wav_max_length,
             transcript_max_length=self.transcript_max_length,
+            fmin=self.fmin, fmax=self.fmax, sr=self.sr,
             append_eos_token=True)  # LAS adds a EOS token to the end of a sequence
         val_dataset = LibriDatasetAdapter(
             datasets.load_dataset('librispeech_asr', 'clean', split='validation'),  # type: ignore
@@ -194,6 +197,7 @@ class LightningCTCMTL(LightningCTC):
             win_length=self.win_length, hop_length=self.hop_length,
             wav_max_length=self.wav_max_length,
             transcript_max_length=self.transcript_max_length,
+            fmin=self.fmin, fmax=self.fmax, sr=self.sr,
             append_eos_token=True)
         test_dataset = LibriDatasetAdapter(
             datasets.load_dataset('librispeech_asr', 'clean', split='test'),  # type: ignore
@@ -201,6 +205,7 @@ class LightningCTCMTL(LightningCTC):
             win_length=self.win_length, hop_length=self.hop_length,
             wav_max_length=self.wav_max_length,
             transcript_max_length=self.transcript_max_length,
+            fmin=self.fmin, fmax=self.fmax, sr=self.sr,
             append_eos_token=True)
         return train_dataset, val_dataset, test_dataset
 
@@ -332,7 +337,8 @@ class LightningLASMTL(LightningCTCMTL):
                decoder_hidden_dim=256, decoder_num_layers=1,
                decoder_multi_head=1, decoder_mlp_dim=128,
                asr_label_smooth=0.1, teacher_force_prob=0.9,
-               asr_weight=1.0, speaker_id_weight=1.0):
+               asr_weight=1.0, speaker_id_weight=1.0,
+               fmin=0, fmax=8000, sr=22050):
     self.encoder_dropout = encoder_dropout
     self.decoder_hidden_dim = decoder_hidden_dim
     self.decoder_num_layers = decoder_num_layers
@@ -353,7 +359,8 @@ class LightningLASMTL(LightningCTCMTL):
       encoder_hidden_dim=encoder_hidden_dim,
       encoder_bidirectional=encoder_bidirectional,
       asr_weight=asr_weight,
-      speaker_id_weight=speaker_id_weight)
+      speaker_id_weight=speaker_id_weight,
+      fmin=fmin, fmax=fmax, sr=sr)
     self.save_hyperparameters()
 
   def create_model(self):
@@ -380,6 +387,7 @@ class LightningLASMTL(LightningCTCMTL):
           win_length=self.win_length, hop_length=self.hop_length,
           wav_max_length=self.wav_max_length,
           transcript_max_length=self.transcript_max_length,
+          fmin=self.fmin, fmax=self.fmax, sr=self.sr,
           append_eos_token=True)  # LAS adds a EOS token to the end of a sequence
       val_dataset = LibriDatasetAdapter(
           datasets.load_dataset('librispeech_asr', 'clean', split='validation'), # type: ignore
@@ -387,6 +395,7 @@ class LightningLASMTL(LightningCTCMTL):
           win_length=self.win_length, hop_length=self.hop_length,
           wav_max_length=self.wav_max_length,
           transcript_max_length=self.transcript_max_length,
+          fmin=self.fmin, fmax=self.fmax, sr=self.sr,
           append_eos_token=True)
       test_dataset = LibriDatasetAdapter(
           datasets.load_dataset('librispeech_asr', 'clean', split='test'), # type: ignore
@@ -394,6 +403,7 @@ class LightningLASMTL(LightningCTCMTL):
           win_length=self.win_length, hop_length=self.hop_length,
           wav_max_length=self.wav_max_length,
           transcript_max_length=self.transcript_max_length,
+          fmin=self.fmin, fmax=self.fmax, sr=self.sr,
           append_eos_token=True)
       return train_dataset, val_dataset, test_dataset
 
@@ -423,7 +433,8 @@ class LightningCTCLASMTL(LightningLASMTL):
                decoder_hidden_dim=256, decoder_num_layers=1,
                decoder_multi_head=1, decoder_mlp_dim=128,
                asr_label_smooth=0.1, teacher_force_prob=0.9,
-               ctc_weight=0.5, asr_weight=1.0, speaker_id_weight=1.0):
+               ctc_weight=0.5, asr_weight=1.0, speaker_id_weight=1.0,
+               fmin=0, fmax=8000, sr=22050):
     super().__init__(
       n_mels=n_mels,
       n_fft=n_fft,
@@ -445,7 +456,8 @@ class LightningCTCLASMTL(LightningLASMTL):
       asr_label_smooth=asr_label_smooth,
       teacher_force_prob=teacher_force_prob,
       asr_weight=asr_weight,
-      speaker_id_weight=speaker_id_weight)
+      speaker_id_weight=speaker_id_weight,
+      fmin=fmin, fmax=fmax, sr=sr)
     self.save_hyperparameters()
     self.ctc_weight = ctc_weight
 
