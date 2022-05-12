@@ -5,8 +5,17 @@ from torch.utils.data import DataLoader
 from torch import nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
+from typing import * # type: ignore
 
-__all__ = ('get_ctc_loss', 'CTCEncoderDecoder', 'LightningCTC')
+__all__ = ('get_ctc_loss', 'CTCMetricsDict', 'CTCEncoderDecoder', 'LightningCTC')
+
+class CTCMetricsDict:
+  class Val(TypedDict):
+    val_loss: float
+    val_cer: float
+  class Test(TypedDict):
+    test_loss: float
+    test_cer: float
 
 def get_ctc_loss(
     log_probs, targets, input_lengths, target_lengths, blank=0):
@@ -201,19 +210,19 @@ class LightningCTC(pl.LightningModule):
 
   def create_datasets(self):
     train_dataset = LibriDatasetAdapter(
-        datasets.load_dataset('librispeech_asr', 'clean', split='train.100'), n_mels=self.n_mels, n_fft=self.n_fft, 
+        datasets.load_dataset('librispeech_asr', 'clean', split='train.100'), n_mels=self.n_mels, n_fft=self.n_fft, # type: ignore
         win_length=self.win_length, hop_length=self.hop_length,
         wav_max_length=self.wav_max_length,
         transcript_max_length=self.transcript_max_length,
         append_eos_token=False)
     val_dataset = LibriDatasetAdapter(
-        datasets.load_dataset('librispeech_asr', 'clean', split='validation'), n_mels=self.n_mels, n_fft=self.n_fft,
+        datasets.load_dataset('librispeech_asr', 'clean', split='validation'), n_mels=self.n_mels, n_fft=self.n_fft, # type: ignore
         win_length=self.win_length, hop_length=self.hop_length, 
         wav_max_length=self.wav_max_length,
         transcript_max_length=self.transcript_max_length,
         append_eos_token=False) 
     test_dataset = LibriDatasetAdapter(
-        datasets.load_dataset('librispeech_asr', 'clean', split='test'), n_mels=self.n_mels, n_fft=self.n_fft,
+        datasets.load_dataset('librispeech_asr', 'clean', split='test'), n_mels=self.n_mels, n_fft=self.n_fft, # type: ignore
         win_length=self.win_length, hop_length=self.hop_length,
         wav_max_length=self.wav_max_length,
         transcript_max_length=self.transcript_max_length,
@@ -283,7 +292,7 @@ class LightningCTC(pl.LightningModule):
     return metrics
 
   # Overwrite: e.g. accumulate stats (avg over CER and loss)
-  def validation_epoch_end(self, outputs):
+  def validation_epoch_end(self, outputs: list[CTCMetricsDict.Val]):
     """Called at the end of validation step to aggregate outputs."""
     # outputs is list of metrics from every validation_step (over a
     # validation epoch).
@@ -298,7 +307,7 @@ class LightningCTC(pl.LightningModule):
     self.log('val_cer', metrics['val_cer'], prog_bar=True)
     # self.log_dict(metrics)
 
-  def test_epoch_end(self, outputs):
+  def test_epoch_end(self, outputs: list[CTCMetricsDict.Test]):
     metrics = { 
       'test_loss': torch.tensor([elem['test_loss']
                                   for elem in outputs]).float().mean(),
@@ -323,117 +332,3 @@ class LightningCTC(pl.LightningModule):
     loader = DataLoader(self.test_dataset, batch_size=self.batch_size,
                         shuffle=False, pin_memory=True, num_workers=4)
     return loader
-
-class CTCEncoderDecoder(nn.Module):
-  """
-  Encoder-Decoder model trained with CTC objective.
-
-  Args:
-    input_dim: integer
-                number of input features
-    num_class: integer
-                size of transcription vocabulary
-    num_layers: integer (default: 2)
-                number of layers in encoder LSTM
-    hidden_dim: integer (default: 128)
-                number of hidden dimensions for encoder LSTM
-    bidirectional: boolean (default: True)
-                    is the encoder LSTM bidirectional?
-  """
-  def __init__(
-      self, input_dim, num_class, num_layers=2, hidden_dim=128,
-      bidirectional=True):
-    super().__init__()
-    # Note: `batch_first=True` argument implies the inputs to the LSTM should
-    # be of shape (batch_size x T x D) instead of (T x batch_size x D).
-    self.encoder = nn.LSTM(input_dim, hidden_dim, num_layers=num_layers, 
-                            bidirectional=bidirectional, batch_first=True)
-    self.decoder = nn.Linear(hidden_dim * 2, num_class)
-    self.input_dim = input_dim
-    self.num_class = num_class
-    self.num_layers = num_layers
-    self.hidden_dim = hidden_dim
-    self.embedding_dim = hidden_dim * num_layers * 2 * \
-                          (2 if bidirectional else 1)
-
-  def combine_h_and_c(self, h, c):
-    """Combine the signals from RNN hidden and cell states."""
-    batch_size = h.size(1)
-    h = h.permute(1, 0, 2).contiguous()
-    c = c.permute(1, 0, 2).contiguous()
-    h = h.view(batch_size, -1)
-    c = c.view(batch_size, -1)
-    return torch.cat([h, c], dim=1)  # just concatenate
-
-  def forward(self, inputs, input_lengths):
-    batch_size, max_length, _ = inputs.size()
-    # `torch.nn.utils.rnn.pack_padded_sequence` collapses padded sequences
-    # to a contiguous chunk
-    inputs = torch.nn.utils.rnn.pack_padded_sequence(
-        inputs, input_lengths.cpu(), batch_first=True, enforce_sorted=False)
-    log_probs = None
-    h, c = None, None
-    ############################ START OF YOUR CODE ############################
-    # TODO(2.1)
-    # Hint:
-    # - Refer to https://pytorch.org/docs/stable/nn.html
-    # - Use `self.encoder` to get the encodings output which is of shape
-    #   (batch_size, max_length, num_directions*hidden_dim) and the
-    #   hidden states and cell states which are both of shape
-    #   (batch_size, num_layers*num_directions, hidden_dim)
-    # - Pad outputs with `0.` using `torch.nn.utils.rnn.pad_packed_sequence`
-    #   (turn on batch_first and set total_length as max_length).
-    # - Apply 50% dropout.
-    # - Use `self.decoder` to take the embeddings sequence and return
-    #   probabilities for each character.
-    # - Make sure to then convert to log probabilities.
-
-    encodings, (h, c) = self.encoder(inputs)
-    encodings, lens_unpacked = torch.nn.utils.rnn.pad_packed_sequence(
-        encodings, batch_first=True, total_length=max_length)
-    encodings = F.dropout(encodings, 0.50, training=self.training)
-    vals = self.decoder(encodings)
-    log_probs = F.log_softmax(vals, dim=-1)
-
-    ############################# END OF YOUR CODE #############################
-    
-    # The extracted embedding is not used for the ASR task but will be
-    # needed for other auxiliary tasks.
-    embedding = self.combine_h_and_c(h, c)
-    return log_probs, embedding
-
-  def get_loss(
-      self, log_probs, targets, input_lengths, target_lengths, blank=0):
-    return get_ctc_loss(
-        log_probs, targets, input_lengths, target_lengths, blank)
-
-  def decode(self, log_probs, input_lengths, labels, label_lengths,
-             sos_index, eos_index, pad_index, eps_index):
-    # Use greedy decoding.
-    decoded = torch.argmax(log_probs, dim=2)
-    batch_size = decoded.size(0)
-    # Collapse each decoded sequence using CTC rules.
-    hypotheses = []
-    for i in range(batch_size):
-      hypotheses_i = self.ctc_collapse(decoded[i], input_lengths[i].item(),
-                                       blank_index=eps_index)
-      hypotheses.append(hypotheses_i)
-
-    hypothesis_lengths = input_lengths.cpu().numpy().tolist()
-    if labels is None: # Run at inference time.
-      references, reference_lengths = None, None
-    else:
-      references = labels.cpu().numpy().tolist()
-      reference_lengths = label_lengths.cpu().numpy().tolist()
-
-    return hypotheses, hypothesis_lengths, references, reference_lengths
-
-  def ctc_collapse(self, seq, seq_len, blank_index=0):
-    result = []
-    for i, tok in enumerate(seq[:seq_len]):
-      if tok.item() != blank_index:  # remove blanks
-        if i != 0 and tok.item() == seq[i-1].item():  # remove dups
-          pass
-        else:
-          result.append(tok.item())
-    return result

@@ -5,6 +5,8 @@ import torch.nn.functional as F
 
 from utils import (reshape_and_apply, label_smooth_loss)
 
+__all__ = ('Listener', 'LASEncoderDecoder')
+
 
 class Listener(nn.Module):
     """Stacks 3 layers of PyramidLSTMLayers to reduce resolution 8 times.

@@ -6,6 +6,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 import os
+import glob
 
 MODEL_PATH = 'trained_models'
 
@@ -22,8 +23,9 @@ def run(system, config, ckpt_dir, epochs=1, monitor_key='val_loss',
   SystemClass = globals()[system]
   system = SystemClass(**config)
 
+  dirpath = os.path.join(MODEL_PATH, ckpt_dir)
   checkpoint_callback = ModelCheckpoint(
-    dirpath=os.path.join(MODEL_PATH, ckpt_dir),
+    dirpath=dirpath,
     save_top_k=1,
     verbose=True,
     monitor=monitor_key, 
@@ -35,11 +37,13 @@ def run(system, config, ckpt_dir, epochs=1, monitor_key='val_loss',
   
   trainer_args = dict(
         max_epochs=epochs, min_epochs=epochs, enable_checkpointing=True,
-        #num_workers=4,
         callbacks=checkpoint_callback, logger=wandb_logger
   )
-  if resume and checkpoint_callback.best_model_path:
-      trainer_args['resume_from_checkpoint'] = checkpoint_callback.best_model_path
+  if resume:
+    checkpoint_name = glob.glob(os.path.join(dirpath, '*'))
+    if len(checkpoint_name) > 0:
+      assert len(checkpoint_name) == 1
+      trainer_args['resume_from_checkpoint'] = checkpoint_callback.best_model_path = checkpoint_name[0]
 
   if use_gpu:
     trainer = pl.Trainer(gpus=1, **trainer_args)
@@ -50,21 +54,60 @@ def run(system, config, ckpt_dir, epochs=1, monitor_key='val_loss',
   result = trainer.test()
   return result
 
+# config = {
+#     'n_mels': 128, 
+#     'n_fft': 512,
+#     'win_length': 512,
+#     'hop_length': 128,
+#     'wav_max_length': 2192,
+#     'transcript_max_length': 580,
+#     'learning_rate': 1e-5, #1e-3, 
+#     'batch_size': 16,
+#     'weight_decay': 0, 
+#     'encoder_num_layers': 2,
+#     'encoder_hidden_dim': 128,
+#     'encoder_bidirectional': True,
+#     'encoder_dropout': 0,
+#     'decoder_hidden_dim': 256,  # must be 2 x encoder_hidden_dim
+#     'decoder_num_layers': 2,
+#     'decoder_multi_head': 1,
+#     'decoder_mlp_dim': 64,
+#     'asr_label_smooth': 0.1,
+#     'teacher_force_prob': 0.9,
+#     'ctc_weight': 0.5,
+#     'asr_weight': 0.5,
+#     'speaker_id_weight': 0.5
+# }
+
+
+# n_mels = 80,
+# 
+# n_fft: ,
+# hop_length: 256,
+
+
+
+  # "min_level_db": -100,
+  # "ref_level_db": 20,
+
 config = {
-    'n_mels': 128, 
-    'n_fft': 512,
+    'n_mels': 80, 
+    'n_fft': 1024,
+    'fmin': 125,
+    'fmax': 7600,
+    'sr': 22050,
     'win_length': 512,
-    'hop_length': 128,
-    'wav_max_length': 4370//2, 
+    'hop_length': 256,
+    'wav_max_length': 2192,
     'transcript_max_length': 580,
-    'learning_rate': 1e-3, 
-    'batch_size': 128, 
+    'learning_rate': 1e-5, #1e-3, 
+    'batch_size': 16,
     'weight_decay': 0, 
-    'encoder_num_layers': 3, 
-    'encoder_hidden_dim': 256, 
+    'encoder_num_layers': 2,
+    'encoder_hidden_dim': 128,
     'encoder_bidirectional': True,
     'encoder_dropout': 0,
-    'decoder_hidden_dim': 128,  # must be 2 x encoder_hidden_dim
+    'decoder_hidden_dim': 256,  # must be 2 x encoder_hidden_dim
     'decoder_num_layers': 2,
     'decoder_multi_head': 1,
     'decoder_mlp_dim': 64,
@@ -86,4 +129,4 @@ config = {
 # - Every validation loop, the best performing model is saved.
 # - After training, the system will evaluate performance on the test set.
 if __name__ == '__main__':
-  run(system="LightningCTCLASMTL", config=config, ckpt_dir='ctc-las-mtl', epochs=35, use_gpu=True, resume=True)
+  run(system="LightningCTCLASMTL", config=config, ckpt_dir='ctc-las-mtl', epochs=35, use_gpu=True, resume=True, monitor_key='val_asr_loss')

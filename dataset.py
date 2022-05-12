@@ -63,8 +63,8 @@ class ItemClass(NamedTuple):
 
 class LibriDatasetAdapter(Dataset):
     def __init__(self, hf_ds: datasets.Dataset, n_mels=64, n_fft=256, win_length=256, # type: ignore 
-            hop_length=128, wav_max_length=4370, transcript_max_length=580, # 576 is the max num of chars
-            append_eos_token=False):
+            hop_length=128, wav_max_length=2192, transcript_max_length=580, # 576 is the max num of chars
+            append_eos_token=False, fmin=125, fmax=7600, sr=22050):
 
         hf_ds = hf_ds.filter(lambda example: len(example['text'].split()) >= 5)
         self.wav_max_length = wav_max_length
@@ -120,6 +120,10 @@ class LibriDatasetAdapter(Dataset):
         self.eos_index = eos_index
         self.pad_index = pad_index # Use this index for padding.
 
+        self.fmin = fmin
+        self.fmax = fmax
+        self.sr = sr
+
     def __getitem__(self, index):
         """Serves primary task data for a single utterance."""
         # TODO: Improve efficiency
@@ -138,9 +142,12 @@ class LibriDatasetAdapter(Dataset):
         return ItemClass(input_feature, input_length, human_transcript_label, human_transcript_length, speaker_idx)
 
     def transform_wav(self, wav, sr):
-        mel_feats = librosa.feature.melspectrogram(y=wav, sr=sr, 
-            n_mels=self.n_mels, fmax=4096, n_fft=self.n_fft,
-            win_length=self.win_length, hop_length=self.hop_length)
+        wav = librosa.resample(wav, orig_sr=sr, target_sr=self.sr)
+
+        mel_feats = librosa.feature.melspectrogram(y=wav, sr=self.sr, 
+            n_mels=self.n_mels, n_fft=self.n_fft,
+            win_length=self.win_length, hop_length=self.hop_length,
+            fmin=self.fmin, fmax=self.fmax)
         
         log_mel_feats = librosa.power_to_db(mel_feats)
         log_mel_feats = librosa.util.normalize(log_mel_feats)

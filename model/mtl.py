@@ -182,21 +182,21 @@ class LightningCTCMTL(LightningCTC):
 
     def create_datasets(self):
         train_dataset = LibriDatasetAdapter(
-            datasets.load_dataset('librispeech_asr', 'clean', split='train.100'),
+            datasets.load_dataset('librispeech_asr', 'clean', split='train.100'),  # type: ignore
             n_mels=self.n_mels, n_fft=self.n_fft,
             win_length=self.win_length, hop_length=self.hop_length,
             wav_max_length=self.wav_max_length,
             transcript_max_length=self.transcript_max_length,
             append_eos_token=True)  # LAS adds a EOS token to the end of a sequence
         val_dataset = LibriDatasetAdapter(
-            datasets.load_dataset('librispeech_asr', 'clean', split='validation'),
+            datasets.load_dataset('librispeech_asr', 'clean', split='validation'),  # type: ignore
             n_mels=self.n_mels, n_fft=self.n_fft,
             win_length=self.win_length, hop_length=self.hop_length,
             wav_max_length=self.wav_max_length,
             transcript_max_length=self.transcript_max_length,
             append_eos_token=True)
         test_dataset = LibriDatasetAdapter(
-            datasets.load_dataset('librispeech_asr', 'clean', split='test'),
+            datasets.load_dataset('librispeech_asr', 'clean', split='test'),  # type: ignore
             n_mels=self.n_mels, n_fft=self.n_fft,
             win_length=self.win_length, hop_length=self.hop_length,
             wav_max_length=self.wav_max_length,
@@ -285,18 +285,10 @@ class LightningCTCMTL(LightningCTC):
                                           for elem in outputs]).float().mean(),
             'val_asr_cer': torch.tensor([elem['val_asr_cer']
                                          for elem in outputs]).float().mean(),
-            'val_task_type_loss': torch.tensor([elem['val_task_type_loss']
+            'val_speaker_id_loss': torch.tensor([elem['val_speaker_id_loss']
                                                 for elem in outputs]).float().mean(),
-            'val_task_type_acc': torch.tensor([elem['val_task_type_acc']
+            'val_speaker_id_acc': torch.tensor([elem['val_speaker_id_acc']
                                                for elem in outputs]).float().mean(),
-            'val_dialog_acts_loss': torch.tensor([
-                elem['val_dialog_acts_loss'] for elem in outputs]).float().mean(),
-            'val_dialog_acts_f1': torch.tensor([elem['val_dialog_acts_f1']
-                                                for elem in outputs]).float().mean(),
-            'val_sentiment_loss': torch.tensor([elem['val_sentiment_loss']
-                                                for elem in outputs]).float().mean(),
-            'val_sentiment_acc': torch.tensor([elem['val_sentiment_acc']
-                                               for elem in outputs]).float().mean()
         }
         ############################# END OF YOUR CODE #############################
         # self.log('val_asr_loss', metrics['val_asr_loss'], prog_bar=True)
@@ -317,18 +309,10 @@ class LightningCTCMTL(LightningCTC):
                                            for elem in outputs]).float().mean(),
             'test_asr_cer': torch.tensor([elem['test_asr_cer']
                                           for elem in outputs]).float().mean(),
-            'test_task_type_loss': torch.tensor([elem['test_task_type_loss']
+            'test_speaker_id_loss': torch.tensor([elem['test_speaker_id_loss']
                                                  for elem in outputs]).float().mean(),
-            'test_task_type_acc': torch.tensor([elem['test_task_type_acc']
+            'test_speaker_id_acc': torch.tensor([elem['test_speaker_id_acc']
                                                 for elem in outputs]).float().mean(),
-            'test_dialog_acts_loss': torch.tensor([
-                elem['test_dialog_acts_loss'] for elem in outputs]).float().mean(),
-            'test_dialog_acts_f1': torch.tensor([elem['test_dialog_acts_f1']
-                                                 for elem in outputs]).float().mean(),
-            'test_sentiment_loss': torch.tensor([elem['test_sentiment_loss']
-                                                 for elem in outputs]).float().mean(),
-            'test_sentiment_acc': torch.tensor([elem['test_sentiment_acc']
-                                                for elem in outputs]).float().mean()
         }
         ############################# END OF YOUR CODE #############################
         # self.log('test_asr_loss', metrics['test_asr_loss'], prog_bar=True)
@@ -391,21 +375,21 @@ class LightningLASMTL(LightningCTCMTL):
 
   def create_datasets(self):
       train_dataset = LibriDatasetAdapter(
-          datasets.load_dataset('librispeech_asr', 'clean', split='train.100'),
+          datasets.load_dataset('librispeech_asr', 'clean', split='train.100'), # type: ignore
           n_mels=self.n_mels, n_fft=self.n_fft,
           win_length=self.win_length, hop_length=self.hop_length,
           wav_max_length=self.wav_max_length,
           transcript_max_length=self.transcript_max_length,
           append_eos_token=True)  # LAS adds a EOS token to the end of a sequence
       val_dataset = LibriDatasetAdapter(
-          datasets.load_dataset('librispeech_asr', 'clean', split='validation'),
+          datasets.load_dataset('librispeech_asr', 'clean', split='validation'), # type: ignore
           n_mels=self.n_mels, n_fft=self.n_fft,
           win_length=self.win_length, hop_length=self.hop_length,
           wav_max_length=self.wav_max_length,
           transcript_max_length=self.transcript_max_length,
           append_eos_token=True)
       test_dataset = LibriDatasetAdapter(
-          datasets.load_dataset('librispeech_asr', 'clean', split='test'),
+          datasets.load_dataset('librispeech_asr', 'clean', split='test'), # type: ignore
           n_mels=self.n_mels, n_fft=self.n_fft,
           win_length=self.win_length, hop_length=self.hop_length,
           wav_max_length=self.wav_max_length,
@@ -504,100 +488,3 @@ class LightningCTCLASMTL(LightningLASMTL):
       label_smooth=self.asr_label_smooth)
     loss = self.ctc_weight * ctc_loss + (1 - self.ctc_weight) * las_loss
     return loss
-
-
-class LightningLASMTL(LightningCTCMTL):
-  """Train a Listen-Attend-Spell model along with the Multi-Task Objevtive.
-  """
-
-  def __init__(self, n_mels=128, n_fft=256, win_length=256, hop_length=128,
-               wav_max_length=200, transcript_max_length=200,
-               learning_rate=1e-3, batch_size=256, weight_decay=1e-5,
-               encoder_num_layers=2, encoder_hidden_dim=256,
-               encoder_bidirectional=True, encoder_dropout=0,
-               decoder_hidden_dim=256, decoder_num_layers=1,
-               decoder_multi_head=1, decoder_mlp_dim=128,
-               asr_label_smooth=0.1, teacher_force_prob=0.9,
-               asr_weight=1.0, task_type_weight=1.0,
-               dialog_acts_weight=1.0, sentiment_weight=1.0):
-    self.encoder_dropout = encoder_dropout
-    self.decoder_hidden_dim = decoder_hidden_dim
-    self.decoder_num_layers = decoder_num_layers
-    self.decoder_mlp_dim = decoder_mlp_dim
-    self.decoder_multi_head = decoder_multi_head
-    self.asr_label_smooth = asr_label_smooth
-    self.teacher_force_prob = teacher_force_prob
-
-    super().__init__(
-      n_mels=n_mels, n_fft=n_fft,
-      win_length=win_length, hop_length=hop_length,
-      wav_max_length=wav_max_length,
-      transcript_max_length=transcript_max_length,
-      learning_rate=learning_rate,
-      batch_size=batch_size,
-      weight_decay=weight_decay,
-      encoder_num_layers=encoder_num_layers,
-      encoder_hidden_dim=encoder_hidden_dim,
-      encoder_bidirectional=encoder_bidirectional,
-      asr_weight=asr_weight,
-      task_type_weight=task_type_weight,
-      dialog_acts_weight=dialog_acts_weight,
-      sentiment_weight=sentiment_weight)
-    self.save_hyperparameters()
-
-  def create_model(self):
-    model = LASEncoderDecoder(
-      self.train_dataset.input_dim,
-      self.train_dataset.num_class,
-      self.transcript_max_length,
-      listener_hidden_dim=self.encoder_hidden_dim,
-      listener_bidirectional=self.encoder_bidirectional,
-      num_pyramid_layers=self.encoder_num_layers,
-      dropout=self.encoder_dropout,
-      speller_hidden_dim=self.decoder_hidden_dim,
-      speller_num_layers=self.decoder_num_layers,
-      mlp_hidden_dim=self.decoder_mlp_dim,
-      multi_head=self.decoder_multi_head,
-      sos_index=self.train_dataset.sos_index,
-      sample_decode=False)
-    return model
-
-  def create_datasets(self):
-    train_dataset = LibriDatasetAdapter(
-      datasets.load_dataset('librispeech_asr', 'clean', split='train.100'),
-      n_mels=self.n_mels, n_fft=self.n_fft,
-      win_length=self.win_length, hop_length=self.hop_length,
-      wav_max_length=self.wav_max_length,
-      transcript_max_length=self.transcript_max_length,
-      append_eos_token=True)  # LAS adds a EOS token to the end of a sequence
-    val_dataset = LibriDatasetAdapter(
-      datasets.load_dataset('librispeech_asr', 'clean', split='validation'),
-      n_mels=self.n_mels, n_fft=self.n_fft,
-      win_length=self.win_length, hop_length=self.hop_length,
-      wav_max_length=self.wav_max_length,
-      transcript_max_length=self.transcript_max_length,
-      append_eos_token=True)
-    test_dataset = LibriDatasetAdapter(
-      datasets.load_dataset('librispeech_asr', 'clean', split='test'),
-      n_mels=self.n_mels, n_fft=self.n_fft,
-      win_length=self.win_length, hop_length=self.hop_length,
-      wav_max_length=self.wav_max_length,
-      transcript_max_length=self.transcript_max_length,
-      append_eos_token=True)
-    return train_dataset, val_dataset, test_dataset
-
-  def forward(self, inputs, input_lengths, labels, label_lengths):
-    log_probs, embedding = self.model(
-      inputs,
-      ground_truth=labels,
-      teacher_force_prob=self.teacher_force_prob,
-    )
-    return log_probs, embedding
-
-  def get_loss(self, log_probs, input_lengths, labels, label_lengths):
-    loss = self.model.get_loss(log_probs, labels,
-      self.train_dataset.num_labels,
-      pad_index=self.train_dataset.pad_index,
-      label_smooth=self.asr_label_smooth)
-    return loss
-
