@@ -9,7 +9,8 @@ import wandb
 
 STYLE_TRANSFER_ARCHIVE = 'style_transfers'
 
-from kelpto.archives import dir_archive
+# from klepto.archives import dir_archive
+import shelve
 
 import torch
 from torch import nn
@@ -37,12 +38,15 @@ class StyleTransfer:
         prev_loss = float('inf')
         converged = False
 
-        content_param = nn.parameter.Parameter(self.content_sample.input_feature)
+        content_param = self.content_sample.input_feature
+        #nn.parameter.Parameter(self.content_sample.input_feature, True)
 
         optimizer = optim.Adam(params=
             [content_param] # TODO: should we change the input length
         )
-        self.content_sample.input_feature.requires_grad = True
+        self.content_sample.input_feature.requires_grad_(True)
+        self.asr.eval()
+        self.asr.requires_grad_(False)
 
         # Don't change. Don't need to recompute them over and over again.
         style_embedding = self.asr.get_style_embedding(self.style_sample, split='train')
@@ -61,18 +65,19 @@ class StyleTransfer:
                 loss = losses.mean()
             else:
                 raise NotImplementedError()
-            curr_loss = loss.item()
-
-            converged = curr_loss - prev_loss < epsilon
 
             loss.backward()
             optimizer.step()
+
+            curr_loss = loss.item()
+            converged = prev_loss - curr_loss < epsilon
+
             step += 1
-            prev_loss = curr_loss
             self.wandb_logger.log_metrics({
                 'style_transfer_loss': curr_loss,
                 'loss_diff': prev_loss - curr_loss
             }, step)
+            prev_loss = curr_loss
 
     def analyze(self):
         content_mels = copy.deepcopy(self.content_sample.input_feature)
@@ -83,21 +88,27 @@ class StyleTransfer:
         content_path = self.content_sample.input_path
         style_path = self.style_sample.input_path
 
-        content_mels = content_mels[0, :, :self.content_sample.input_length]
-        style_mels = self.style_sample.input_feature[0, :, :self.style_sample.input_length]
-        posttransfer_mels = self.content_sample.input_feature[0, :, :self.content_sample.input_length]
+        content_mels = content_mels[0, :self.content_sample.input_length.long().item(), :]
+        style_mels = self.style_sample.input_feature[0, :self.style_sample.input_length.long().item(), :]
+        posttransfer_mels = self.content_sample.input_feature[0, :self.content_sample.input_length.long().item(), :]
 
-        with dir_archive(STYLE_TRANSFER_ARCHIVE) as db:
-            db[content_path + '     ' + style_path] = {
-                'content_path': content_path,
-                'content_mels': content_mels,
-                'style_path': style_path,
-                'style_mels': style_mels,
-                'style_utterance': style_utterance,
-                'pretransfer_utterance': pretransfer_utterance,
-                'posttransfer_utterance': posttransfer_utterance,
-                'posttransfer_mels': posttransfer_mels,
-            }
+        d = {
+            'content_path': content_path,
+            'content_mels': content_mels,
+            'style_path': style_path,
+            'style_mels': style_mels,
+            'style_utterance': style_utterance,
+            'pretransfer_utterance': pretransfer_utterance,
+            'posttransfer_utterance': posttransfer_utterance,
+            'posttransfer_mels': posttransfer_mels,
+        }
+
+        # db = dir_archive(STYLE_TRANSFER_ARCHIVE)
+        with shelve.open(STYLE_TRANSFER_ARCHIVE) as db:
+            db[content_path + ':' + style_path] = d
+        # db.sync()
+
+        return d
 
 def gram_matrix(a):
     b, h = a.shape
