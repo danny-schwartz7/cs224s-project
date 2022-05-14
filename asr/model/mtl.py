@@ -14,12 +14,13 @@ from .las import *
 from Constants import EFFECTIVE_NUM_SPEAKERS
 
 class SpeakerIdClassifier(nn.Module):
-    def __init__(self, input_dim, n_classes):
+    def __init__(self, input_dim, n_classes, hidden_dim=64):
         super().__init__()
         ############################ START OF YOUR CODE ############################
         # TODO(4.2)
 
-        self.linear = nn.Linear(input_dim, n_classes)
+        self.linear = nn.Linear(input_dim, hidden_dim)
+        self.linear2 = nn.Linear(hidden_dim, n_classes)
         self.loss_func = torch.nn.NLLLoss()
 
         ############################# END OF YOUR CODE #############################
@@ -30,7 +31,10 @@ class SpeakerIdClassifier(nn.Module):
         # TODO(4.2)
         # Hint: This is an N-way classification problem.
 
-        log_probs = F.log_softmax(self.linear(inputs), dim=-1)
+        x = self.linear(inputs)
+        x = F.relu(x)
+        x = self.linear2(x)
+        log_probs = F.log_softmax(x, dim=-1)
 
         ############################# END OF YOUR CODE #############################
         return log_probs
@@ -44,6 +48,12 @@ class SpeakerIdClassifier(nn.Module):
 
         ############################# END OF YOUR CODE #############################
         return loss
+
+    def get_style_embedding(self, inputs):
+        x = self.linear(inputs)
+        x = F.relu(x)
+        x = self.linear2(x)
+        return x
 
 
 class CTCDecoder(nn.Module):
@@ -324,7 +334,10 @@ class LightningCTCMTL(LightningCTC):
         # self.log('test_asr_cer', metrics['test_asr_cer'], prog_bar=True)
         self.log_dict(metrics)
 
-
+    def get_style_embedding(self, batch, split='train'):
+        asr_loss, asr_metrics, embedding = self.get_primary_task_loss(batch, split)
+        return self.speaker_id_model(embedding)
+    
 class LightningLASMTL(LightningCTCMTL):
   """Train a Listen-Attend-Spell model along with the Multi-Task Objevtive.
   """

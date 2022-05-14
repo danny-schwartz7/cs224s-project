@@ -57,6 +57,7 @@ class ProcessedLibriSample(LibriSample):
 class ItemClass(NamedTuple):
   input_feature: torch.Tensor
   input_length: int
+  input_path: str
   human_transcript_label: torch.Tensor
   human_transcript_length: int
   speaker_idx: int
@@ -134,6 +135,7 @@ class LibriDatasetAdapter(Dataset):
         sample : ProcessedLibriSample = self.hf_ds[index] # type: ignore
         wav = sample['audio']['array']
         wav_sr = sample['audio']['sampling_rate']
+        input_path = sample['audio']['path']
         text = sample['processed_text']
         speaker_id = sample['speaker_id']
 
@@ -142,7 +144,7 @@ class LibriDatasetAdapter(Dataset):
         speaker_idx = SPEAKER_MAPPING[speaker_id]
 
         #return input_feature, input_length, human_transcript_label, human_transcript_length# TODO: , speaker_id
-        return ItemClass(input_feature, input_length, human_transcript_label, human_transcript_length, speaker_idx)
+        return ItemClass(input_feature, input_length, input_path, human_transcript_label, human_transcript_length, speaker_idx)
 
     def transform_wav(self, wav, sr):
         wav = librosa.resample(wav, orig_sr=sr, target_sr=self.sr)
@@ -174,6 +176,13 @@ class LibriDatasetAdapter(Dataset):
     def __len__(self):
         """Returns total number of utterances in the dataset."""
         return len(self.hf_ds)
+
+    def indices_to_chars(self, indices):
+        # indices: list of integers in vocab
+        # add special characters in front (since we did this above)
+        full_vocab = ['<eps>', '<sos>', '<eos>', '<pad>'] + VOCAB
+        chars = [full_vocab[ind] for ind in indices]
+        return chars
 
 '''
 class HarperValleyBank(Dataset):
