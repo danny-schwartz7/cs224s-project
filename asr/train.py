@@ -85,6 +85,7 @@ def run(system, config, ckpt_dir, epochs=1, monitor_key='val_loss',
   # "min_level_db": -100,
   # "ref_level_db": 20,
 
+# until epoch 8 inc
 # config = {
 #     'n_mels': 80, 
 #     'n_fft': 1024,
@@ -103,6 +104,36 @@ def run(system, config, ckpt_dir, epochs=1, monitor_key='val_loss',
 #     'encoder_bidirectional': True,
 #     'encoder_dropout': 0,
 #     'decoder_hidden_dim': 256,  # must be 2 x encoder_hidden_dim
+#     'decoder_num_layers': 2,
+#     'decoder_multi_head': 1,
+#     'decoder_mlp_dim': 64,
+#     'asr_label_smooth': 0.1,
+#     'teacher_force_prob': 0.9,
+#     'ctc_weight': 0.5,
+#     'asr_weight': 0.5,
+#     'speaker_id_weight': 0.5
+# }
+
+
+# until epoch 15 inc
+# config = {
+#     'n_mels': 80, 
+#     'n_fft': 1024,
+#     'fmin': 0,
+#     'fmax': 8000,
+#     'sr': 22050,
+#     'win_length': 1024,
+#     'hop_length': 256,
+#     'wav_max_length': 3024,
+#     'transcript_max_length': 580,
+#     'learning_rate': 1e-5, #1e-3, 
+#     'batch_size': 6,
+#     'weight_decay': 0, 
+#     'encoder_num_layers': 2,
+#     'encoder_hidden_dim': 256,
+#     'encoder_bidirectional': True,
+#     'encoder_dropout': 0.3,
+#     'decoder_hidden_dim': 512,  # must be 2 x encoder_hidden_dim
 #     'decoder_num_layers': 2,
 #     'decoder_multi_head': 1,
 #     'decoder_mlp_dim': 64,
@@ -137,7 +168,7 @@ config = {
     'decoder_mlp_dim': 64,
     'asr_label_smooth': 0.1,
     'teacher_force_prob': 0.9,
-    'ctc_weight': 0.3,
+    'ctc_weight': 0.5,
     'asr_weight': 0.5,
     'speaker_id_weight': 0.5
 }
