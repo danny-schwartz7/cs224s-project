@@ -51,8 +51,7 @@ class SpeakerIdClassifier(nn.Module):
 
     def get_style_embedding(self, inputs):
         x = self.linear(inputs)
-        x = F.relu(x)
-        x = self.linear2(x)
+        x = F.relu(x) # TODO: Test if we need this
         return x
 
 

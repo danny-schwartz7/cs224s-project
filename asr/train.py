@@ -4,6 +4,7 @@ import wandb
 import random
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
+import natsort
 
 import os
 import glob
@@ -28,7 +29,7 @@ def run(system, config, ckpt_dir, epochs=1, monitor_key='val_loss',
   dirpath = os.path.join(MODEL_PATH, ckpt_dir)
   checkpoint_callback = ModelCheckpoint(
     dirpath=dirpath,
-    save_top_k=1,
+    save_top_k=-1,
     verbose=True,
     monitor=monitor_key, 
     mode='min')
@@ -42,10 +43,11 @@ def run(system, config, ckpt_dir, epochs=1, monitor_key='val_loss',
         callbacks=checkpoint_callback, logger=wandb_logger
   )
   if resume:
-    checkpoint_name = glob.glob(os.path.join(dirpath, '*'))
+    checkpoint_name = natsort.natsorted(glob.glob(os.path.join(dirpath, '*')))
     if len(checkpoint_name) > 0:
-      assert len(checkpoint_name) == 1
-      trainer_args['resume_from_checkpoint'] = checkpoint_callback.best_model_path = checkpoint_name[0]
+      checkpoint_name = checkpoint_name[-1]
+      print("LOADED " + checkpoint_name)
+      trainer_args['resume_from_checkpoint'] = checkpoint_callback.best_model_path = checkpoint_name
 
   if use_gpu:
     trainer = pl.Trainer(gpus=1, **trainer_args)
@@ -83,6 +85,35 @@ config = {
     'asr_weight': 0.7,
     'speaker_id_weight': 0.3
 }
+
+
+# config = {
+#     'n_mels': 80, 
+#     'n_fft': 1024,
+#     'fmin': 0,
+#     'fmax': 8000,
+#     'sr': 22050,
+#     'win_length': 1024,
+#     'hop_length': 256,
+#     'wav_max_length': 3024,
+#     'transcript_max_length': 580,
+#     'learning_rate': 1e-5, #1e-3, 
+#     'batch_size': 12,
+#     'weight_decay': 0, 
+#     'encoder_num_layers': 2,
+#     'encoder_hidden_dim': 256//2,
+#     'encoder_bidirectional': True,
+#     'encoder_dropout': 0.2,
+#     'decoder_hidden_dim': 512//2,  # must be 2 x encoder_hidden_dim
+#     'decoder_num_layers': 2,
+#     'decoder_multi_head': 1,
+#     'decoder_mlp_dim': 64,
+#     'asr_label_smooth': 0.1,
+#     'teacher_force_prob': 0.9,
+#     'ctc_weight': 0.5,
+#     'asr_weight': 0.1,
+#     'speaker_id_weight': 0.9
+# }
 
 # NOTES:
 # -----

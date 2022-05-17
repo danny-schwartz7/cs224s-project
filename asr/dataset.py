@@ -56,11 +56,49 @@ class ProcessedLibriSample(LibriSample):
 
 class ItemClass(NamedTuple):
   input_feature: torch.Tensor
+  input_norm: torch.Tensor
   input_length: int
   input_path: str
   human_transcript_label: torch.Tensor
   human_transcript_length: int
   speaker_idx: int
+
+  @property
+  def speaker_id(self):
+    return self.speaker_idx
+
+  def cuda(self):
+    return ItemClass(
+      self.input_feature.cuda(),
+      self.input_norm.cuda(),
+      self.input_length,
+      self.input_path,
+      self.human_transcript_label.cuda(),
+      self.human_transcript_length,
+      self.speaker_idx
+    )
+
+  def cpu(self):
+    return ItemClass(
+      self.input_feature.cpu(),
+      self.input_norm.cpu(),
+      self.input_length,
+      self.input_path,
+      self.human_transcript_label.cpu(),
+      self.human_transcript_length,
+      self.speaker_idx
+    )
+
+  def to(self, device):
+    return ItemClass(
+      self.input_feature.to(device),
+      self.input_norm.to(device),
+      self.input_length,
+      self.input_path,
+      self.human_transcript_label.to(device),
+      self.human_transcript_length,
+      self.speaker_idx
+    )
 
 def _filter_min_words(example, min_length=5):
   return len(example['text'].split()) >= min_length
@@ -139,12 +177,12 @@ class LibriDatasetAdapter(Dataset):
         text = sample['processed_text']
         speaker_id = sample['speaker_id']
 
-        input_feature, input_length = self.transform_wav(wav, wav_sr)
+        input_feature, input_norm, input_length = self.transform_wav(wav, wav_sr)
         human_transcript_label, human_transcript_length = self.transform_text(text)
         speaker_idx = SPEAKER_MAPPING[speaker_id]
 
         #return input_feature, input_length, human_transcript_label, human_transcript_length# TODO: , speaker_id
-        return ItemClass(input_feature, input_length, input_path, human_transcript_label, human_transcript_length, speaker_idx)
+        return ItemClass(input_feature, input_norm, input_length, input_path, human_transcript_label, human_transcript_length, speaker_idx)
 
     def transform_wav(self, wav, sr):
         wav = librosa.resample(wav, orig_sr=sr, target_sr=self.sr)
@@ -155,6 +193,7 @@ class LibriDatasetAdapter(Dataset):
             fmin=self.fmin, fmax=self.fmax)
         
         log_mel_feats = librosa.power_to_db(mel_feats)
+        input_norm = torch.as_tensor(np.max(np.abs(log_mel_feats), axis=0, keepdims=True).T, dtype=torch.float32)
         log_mel_feats = librosa.util.normalize(log_mel_feats)
 
         input_feature = log_mel_feats.T
@@ -162,7 +201,7 @@ class LibriDatasetAdapter(Dataset):
         input_feature, input_length = pad_wav(input_feature, self.wav_max_length)
         input_feature = torch.as_tensor(input_feature, dtype=torch.float32)
         
-        return input_feature, input_length
+        return input_feature, input_norm, input_length
 
     def transform_text(self, text):
         label = text

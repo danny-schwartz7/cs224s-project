@@ -9,8 +9,7 @@ import wandb
 
 STYLE_TRANSFER_ARCHIVE = 'style_transfers'
 
-# from klepto.archives import dir_archive
-import shelve
+from klepto.archives import dir_archive
 
 import torch
 from torch import nn
@@ -27,16 +26,18 @@ class StyleTransfer:
         self.content_sample = content_sample
         self.style_sample = style_sample
 
-        wandb.init(project='cs224s', entity=WANDB_NAME, name='style_transfer', 
+        content_path = self.content_sample.input_path
+        style_path = self.style_sample.input_path
+        wandb.init(project='cs224s-style_transfer', entity=WANDB_NAME, name=content_path + ':' + style_path, 
                     config={}, sync_tensorboard=True)
         self.wandb_logger = WandbLogger()
 
-    def optimize(self, ignore_content_loss: bool=True, epsilon=1e-4):
+    def optimize(self, ignore_content_loss: bool=True, max_steps=200, patience=5):
         '''
         Modifies self.content_sample in place
         '''
         prev_loss = float('inf')
-        converged = False
+        best_loss = float('inf')
 
         content_param = self.content_sample.input_feature
         #nn.parameter.Parameter(self.content_sample.input_feature, True)
@@ -45,7 +46,7 @@ class StyleTransfer:
             [content_param] # TODO: should we change the input length
         )
         self.content_sample.input_feature.requires_grad_(True)
-        self.asr.eval()
+        self.asr.train()
         self.asr.requires_grad_(False)
 
         # Don't change. Don't need to recompute them over and over again.
@@ -53,8 +54,9 @@ class StyleTransfer:
         gram_style_embedding = gram_matrix(style_embedding)
 
         step = 0
+        iters_since_best = 0
 
-        while not converged:
+        while iters_since_best < patience and step < max_steps:
             optimizer.zero_grad()
 
             if ignore_content_loss:
@@ -70,7 +72,11 @@ class StyleTransfer:
             optimizer.step()
 
             curr_loss = loss.item()
-            converged = prev_loss - curr_loss < epsilon
+            if curr_loss < best_loss:
+                iters_since_best = 0
+                best_loss = curr_loss
+            else:
+                iters_since_best += 1
 
             step += 1
             self.wandb_logger.log_metrics({
@@ -81,6 +87,7 @@ class StyleTransfer:
 
     def analyze(self):
         content_mels = copy.deepcopy(self.content_sample.input_feature)
+        content_norm = self.content_sample.input_norm
         pretransfer_utterance = get_utterance(self.asr, self.content_sample)
         style_utterance = get_utterance(self.asr, self.style_sample)
         self.optimize()
@@ -95,6 +102,7 @@ class StyleTransfer:
         d = {
             'content_path': content_path,
             'content_mels': content_mels,
+            'content_norm': content_norm,
             'style_path': style_path,
             'style_mels': style_mels,
             'style_utterance': style_utterance,
@@ -103,10 +111,10 @@ class StyleTransfer:
             'posttransfer_mels': posttransfer_mels,
         }
 
-        # db = dir_archive(STYLE_TRANSFER_ARCHIVE)
-        with shelve.open(STYLE_TRANSFER_ARCHIVE) as db:
-            db[content_path + ':' + style_path] = d
-        # db.sync()
+        db = dir_archive(STYLE_TRANSFER_ARCHIVE, serialized=True, cached=False)
+        db[(content_path, style_path)] = d
+
+        wandb.finish()
 
         return d
 
