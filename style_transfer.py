@@ -47,6 +47,7 @@ class StyleTransfer:
         )
         self.content_sample.input_feature.requires_grad_(True)
         self.asr.train()
+        self.asr.droupout_enable = False
         self.asr.requires_grad_(False)
 
         # Don't change. Don't need to recompute them over and over again.

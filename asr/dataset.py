@@ -67,38 +67,38 @@ class ItemClass(NamedTuple):
   def speaker_id(self):
     return self.speaker_idx
 
-  def cuda(self):
-    return ItemClass(
-      self.input_feature.cuda(),
-      self.input_norm.cuda(),
-      self.input_length,
-      self.input_path,
-      self.human_transcript_label.cuda(),
-      self.human_transcript_length,
-      self.speaker_idx
-    )
+  # def cuda(self):
+  #   return ItemClass(
+  #     self.input_feature.cuda(),
+  #     self.input_norm.cuda(),
+  #     self.input_length,
+  #     self.input_path,
+  #     self.human_transcript_label.cuda(),
+  #     self.human_transcript_length,
+  #     self.speaker_idx
+  #   )
 
-  def cpu(self):
-    return ItemClass(
-      self.input_feature.cpu(),
-      self.input_norm.cpu(),
-      self.input_length,
-      self.input_path,
-      self.human_transcript_label.cpu(),
-      self.human_transcript_length,
-      self.speaker_idx
-    )
+  # def cpu(self):
+  #   return ItemClass(
+  #     self.input_feature.cpu(),
+  #     self.input_norm.cpu(),
+  #     self.input_length,
+  #     self.input_path,
+  #     self.human_transcript_label.cpu(),
+  #     self.human_transcript_length,
+  #     self.speaker_idx
+  #   )
 
-  def to(self, device):
-    return ItemClass(
-      self.input_feature.to(device),
-      self.input_norm.to(device),
-      self.input_length,
-      self.input_path,
-      self.human_transcript_label.to(device),
-      self.human_transcript_length,
-      self.speaker_idx
-    )
+  # def to(self, device):
+  #   return ItemClass(
+  #     self.input_feature.to(device),
+  #     self.input_norm.to(device),
+  #     self.input_length,
+  #     self.input_path,
+  #     self.human_transcript_label.to(device),
+  #     self.human_transcript_length,
+  #     self.speaker_idx
+  #   )
 
 def _filter_min_words(example, min_length=5):
   return len(example['text'].split()) >= min_length
@@ -200,6 +200,11 @@ class LibriDatasetAdapter(Dataset):
 
         input_feature, input_length = pad_wav(input_feature, self.wav_max_length)
         input_feature = torch.as_tensor(input_feature, dtype=torch.float32)
+
+        input_norm_ = torch.zeros((input_feature.shape[-2], 1), dtype=input_norm.dtype, device=input_norm.device)# pad to size 
+        input_norm_[:input_norm.shape[0], :] = input_norm
+        input_norm = input_norm_
+        del input_norm_
         
         return input_feature, input_norm, input_length
 

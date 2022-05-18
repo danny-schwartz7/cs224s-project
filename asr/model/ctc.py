@@ -64,6 +64,7 @@ class CTCEncoderDecoder(nn.Module):
     super().__init__()
     # Note: `batch_first=True` argument implies the inputs to the LSTM should
     # be of shape (batch_size x T x D) instead of (T x batch_size x D).
+    self.dropout_enable = True
     self.encoder = nn.LSTM(input_dim, hidden_dim, num_layers=num_layers, 
                             bidirectional=bidirectional, batch_first=True)
     self.decoder = nn.Linear(hidden_dim * 2, num_class)
@@ -109,7 +110,8 @@ class CTCEncoderDecoder(nn.Module):
     encodings, (h, c) = self.encoder(inputs)
     encodings, lens_unpacked = torch.nn.utils.rnn.pad_packed_sequence(
         encodings, batch_first=True, total_length=max_length)
-    encodings = F.dropout(encodings, 0.50, training=self.training)
+    if self.dropout_enable:
+      encodings = F.dropout(encodings, 0.5, training=self.training)
     vals = self.decoder(encodings)
     log_probs = F.log_softmax(vals, dim=-1)
 
@@ -211,6 +213,14 @@ class LightningCTC(pl.LightningModule):
       hidden_dim=self.encoder_hidden_dim,
       bidirectional=self.encoder_bidirectional)
     return model
+
+  @property
+  def dropout_enable(self):
+    return self.model.dropout_enable
+  
+  @dropout_enable.setter
+  def dropout_enable(self, b):
+    self.model.dropout_enable = b
 
   def create_datasets(self):
     train_dataset = LibriDatasetAdapter(

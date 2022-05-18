@@ -67,12 +67,14 @@ class CTCDecoder(nn.Module):
     super().__init__()
     self.fc = nn.Linear(listener_hidden_dim, num_class)
     self.dropout = nn.Dropout(dropout)
+    self.dropout_enable = True
     self.listener_hidden_dim = listener_hidden_dim
     self.num_class = num_class
 
   def forward(self, listener_outputs):
     batch_size, maxlen, _ = listener_outputs.size()
-    logits = self.fc(self.dropout(listener_outputs))
+    listener_outputs = self.dropout(listener_outputs)
+    logits = self.fc(listener_outputs)
     logits = logits.view(batch_size, maxlen, self.num_class)
     log_probs = F.log_softmax(logits, dim=2)
     return log_probs
@@ -113,6 +115,14 @@ class JointCTCAttention(LASEncoderDecoder):
         self.num_pyramid_layers = num_pyramid_layers
         self.embedding_dim = listener_hidden_dim * 4
 
+    @property
+    def dropout_enable(self):
+      return self.ctc_decoder.dropout_enable
+    
+    @dropout_enable.setter
+    def dropout_enable(self, b):
+      self.ctc_decoder.dropout_enable = b
+      
     def forward(
             self, inputs, ground_truth=None, teacher_force_prob=0.9, ):
         ctc_log_probs = None
@@ -490,6 +500,16 @@ class LightningCTCLASMTL(LightningLASMTL):
       sample_decode=False)
 
     return model
+
+  @property
+  def dropout_enable(self):
+    assert super().dropout_enable == self.model.dropout_enable
+    return self.model.dropout_enable
+  
+  @dropout_enable.setter
+  def dropout_enable(self, b):
+    super().dropout_enable = b
+    self.model.dropout_enable = b
 
   def forward(self, inputs, input_lengths, labels, label_lengths):
     ctc_log_probs, las_log_probs, embedding = self.model(
