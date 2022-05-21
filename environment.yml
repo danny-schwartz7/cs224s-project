@@ -31,9 +31,9 @@ dependencies:
   - brotlipy=0.7.0=py39h3811e60_1001
   - bzip2=1.0.8=h7f98852_4
   - c-ares=1.18.1=h7f98852_0
-  - ca-certificates=2022.4.26=h06a4308_0
+  - ca-certificates=2022.5.18.1=ha878542_0
   - cachetools=5.0.0=pyhd8ed1ab_0
-  - certifi=2021.10.8=py39hf3d152e_2
+  - certifi=2022.5.18.1=py39h06a4308_0
   - cffi=1.14.6=py39he32792d_0
   - chardet=4.0.0=py39hf3d152e_3
   - charset-normalizer=2.0.12=pyhd8ed1ab_0
@@ -158,7 +158,6 @@ dependencies:
   - notebook=6.4.11=py39h06a4308_0
   - numba=0.53.1=py39h56b8d98_1
   - numpy=1.22.3=py39hc58783e_2
-  - nvidia-apex=0.1=py39h0dd23f4_6
   - oauthlib=3.2.0=pyhd8ed1ab_0
   - olefile=0.46=pyh9f0ad1d_1
   - openh264=2.1.1=h780b84a_0
@@ -198,7 +197,6 @@ dependencies:
   - pyrsistent=0.18.0=py39heee7806_0
   - pysocks=1.7.1=py39hf3d152e_5
   - pysoundfile=0.10.3.post1=pyhd3deb0d_0
-  - pytest=7.1.2=py39hf3d152e_0
   - python=3.9.12=h12debd9_0
   - python-dateutil=2.8.2=pyhd8ed1ab_0
   - python-fastjsonschema=2.15.1=pyhd3eb1b0_0
@@ -264,4 +262,7 @@ dependencies:
   - zipp=3.8.0=pyhd8ed1ab_0
   - zlib=1.2.11=h166bdaf_1014
   - zstd=1.5.2=ha95c52a_0
+  - pip:
+    - --find-links .
+    - apex==0.1
 prefix: /opt/conda/envs/proj/envs/waveglow

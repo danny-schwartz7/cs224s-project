@@ -126,4 +126,4 @@ config = {
 # - Every validation loop, the best performing model is saved.
 # - After training, the system will evaluate performance on the test set.
 if __name__ == '__main__':
-  run(system="LightningCTCLASMTL", config=config, ckpt_dir='wavglow-styletransfer', epochs=35, use_gpu=True, resume=True, monitor_key='train_asr_cer')
+  run(system="LightningCTCLASMTL", config=config, ckpt_dir='wavglow-styletransfer', epochs=50, use_gpu=True, resume=True, monitor_key='train_asr_cer')

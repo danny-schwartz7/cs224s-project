@@ -1,0 +1,3 @@
+[submodule "waveglow"]
+	path = waveglow
+	url = http://github.com/danny-schwartz7/waveglow
