@@ -111,8 +111,8 @@ config = {
     'asr_label_smooth': 0.1,
     'teacher_force_prob': 0.9,
     'ctc_weight': 0.5,
-    'asr_weight': 0.1,
-    'speaker_id_weight': 90
+    'asr_weight': 0.5,
+    'speaker_id_weight': 0.5
 }
 
 # NOTES:
@@ -126,4 +126,4 @@ config = {
 # - Every validation loop, the best performing model is saved.
 # - After training, the system will evaluate performance on the test set.
 if __name__ == '__main__':
-  run(system="LightningCTCLASMTL", config=config, ckpt_dir='wavglow-styletransfer', epochs=50, use_gpu=True, resume=True, monitor_key='train_asr_cer')
+  run(system="LightningCTCLASMTL", config=config, ckpt_dir='wavglow-styletransfer', epochs=300, use_gpu=True, resume=True, monitor_key='train_asr_cer')

@@ -265,6 +265,11 @@ class LightningCTC(pl.LightningModule):
     inputs, input_lengths = batch.input_feature, batch.input_length
     labels, label_lengths = batch.human_transcript_label, batch.human_transcript_length
 
+    input_mean = batch.input_mean.reshape(-1, 1, 1)
+    input_std = batch.input_std.reshape(-1, 1, 1)
+
+    inputs = ((inputs - input_mean) / input_std).float()
+
     if split == 'train':
       log_probs, embedding = self.forward(
           inputs, input_lengths, labels, label_lengths)

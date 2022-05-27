@@ -345,7 +345,7 @@ class LightningCTCMTL(LightningCTC):
 
     def get_style_embedding(self, batch, split='train'):
         asr_loss, asr_metrics, embedding = self.get_primary_task_loss(batch, split)
-        return self.speaker_id_model(embedding)
+        return self.speaker_id_model.get_style_embedding(embedding)
     
 class LightningLASMTL(LightningCTCMTL):
   """Train a Listen-Attend-Spell model along with the Multi-Task Objevtive.
