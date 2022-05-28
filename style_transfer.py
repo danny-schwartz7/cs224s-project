@@ -147,64 +147,72 @@ class StyleTransfer:
                     config={}, sync_tensorboard=True)
         self.wandb_logger = WandbLogger()
 
-    def optimize(self, ignore_content_loss: bool=True, max_steps=200, patience=5):
+    def optimize(self, ignore_content_loss: bool=True, max_steps=10000, patience=500):
         '''
         Modifies self.content_sample in place
         '''
         prev_loss = float('inf')
         best_loss = float('inf')
 
-        self.asr.eval()
-        self.asr.droupout_enable = False
-        self.asr.requires_grad_(False)
-        output_style_embedding = self.asr.get_style_embedding(self.content_sample)
-
-        output_style_embedding = torch.clone(output_style_embedding.T).detach()
-        print('output_style_embedding_shape', output_style_embedding.shape)
-
-        optimizer = optim.Adam(params=
-            [output_style_embedding]
+        optimizer = optim.Adam(
+            params=[self.content_sample.input_feature],
+            lr=1e-3
         )
-        output_style_embedding.requires_grad_(True)
+        lr_sched = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=1/2, patience=patience//10, mode='min')
+        self.content_sample.input_feature.requires_grad_(True)
         self.asr.train()
         self.asr.droupout_enable = False
-        self.asr.requires_grad_(False)
+        self.asr.requires_grad_(True)
 
         step = 0
         iters_since_best = 0
+        output_style_embedding = None
+        original_mels = torch.clone(self.content_sample.input_feature).detach()
 
-        while iters_since_best < patience and step < max_steps:
-            optimizer.zero_grad()
+        try:
+            while iters_since_best < patience and step < max_steps:
+                optimizer.zero_grad()
 
-            loss = self.loss_func(output_style_embedding, self.sample_cache, self.num_negative_samples)
-            print('LOSS', loss, prev_loss, best_loss)
+                output_style_embedding = self.asr.get_style_embedding(self.content_sample)
+                loss = self.loss_func(output_style_embedding.T, self.sample_cache, self.num_negative_samples)
+                # print('LOSS', loss, prev_loss, best_loss)
 
-            loss.backward()
-            optimizer.step()
+                loss.backward()
+                optimizer.step()
+                lr_sched.step(loss) # step
 
-            curr_loss = loss.item()
-            if curr_loss < best_loss:
-                iters_since_best = 0
-                best_loss = curr_loss
-            else:
-                iters_since_best += 1
+                curr_loss = loss.item()
+                if curr_loss < best_loss:
+                    iters_since_best = 0
+                    best_loss = curr_loss
+                else:
+                    iters_since_best += 1
 
-            step += 1
-            self.wandb_logger.log_metrics({
-                'style_transfer_loss': curr_loss,
-                'loss_diff': prev_loss - curr_loss
-            }, step)
-            prev_loss = curr_loss
+                d = {
+                    'style_transfer_loss': curr_loss,
+                    'loss_diff': prev_loss - curr_loss,
+                    'lr': optimizer.param_groups[0]['lr']
+                }
+
+                if step % 100 == 0:
+                    mel_diff_frob = torch.norm(self.content_sample.input_feature - original_mels)
+                    d['mel_diff_frob'] = mel_diff_frob
+
+                step += 1
+                self.wandb_logger.log_metrics(d, step)
+                prev_loss = curr_loss
+        except KeyboardInterrupt:
+            pass
 
         return output_style_embedding
 
 
-    def analyze(self):
-        content_mels = copy.deepcopy(self.content_sample.input_feature)
+    def analyze(self, *args, **kwargs):
+        content_mels = torch.clone(self.content_sample.input_feature).detach()
         content_mean = self.content_sample.input_mean
         content_std = self.content_sample.input_std
         pretransfer_utterance = get_utterance(self.asr, self.content_sample)
-        output_style_embedding = self.optimize()
+        output_style_embedding = self.optimize(*args, **kwargs)
         posttransfer_utterance = get_utterance(self.asr, self.content_sample)
 
         content_mels = content_mels[0, :self.content_sample.input_length.long().item(), :]
@@ -218,8 +226,7 @@ class StyleTransfer:
             'content_mels': content_mels,
             'posttransfer_mels': posttransfer_mels,
             'content_mean': content_mean,
-            'content_std': content_std,
-            'output_style_embedding': output_style_embedding
+            'content_std': content_std
         }
 
 
