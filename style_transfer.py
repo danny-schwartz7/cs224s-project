@@ -115,7 +115,7 @@ class SampleCache:
             self.embeddings_mat[:, i*batch_size:(i+1)*batch_size] = asr.get_style_embedding(batch, split='train').T
             torch.cuda.empty_cache()
 
-        self.embeddings_mat /= torch.linalg.norm(self.embeddings_mat, dim=0, keepdim=True)
+        # self.embeddings_mat /= torch.linalg.norm(self.embeddings_mat, dim=0, keepdim=True)
 
 
 def is_speaker(speaker):
@@ -133,30 +133,6 @@ class ListDataset(torch.utils.data.IterableDataset):
         return len(self.l)
     def __getitem__(self, i):
         return self.l[i]
-
-
-def contrastive_style_loss(output_style_embedding: torch.Tensor, cache: SampleCache, num_negative_samples: int) -> torch.Tensor:
-    mag = torch.linalg.norm(output_style_embedding)
-    output_style_embedding = output_style_embedding/mag
-    numerator = torch.sum(output_style_embedding.T @ cache.embeddings_mat[:, :cache.num_target_style_cols])
-
-    num_mandatory_samples = cache.num_target_style_cols + cache.num_content_style_samples
-
-    # populate part of denominator without random negative sampling
-    denominator = numerator + torch.sum(output_style_embedding.T @ cache.embeddings_mat[:, cache.num_target_style_cols:num_mandatory_samples])
-
-    neg_sample_weights = torch.ones((cache.embeddings_mat.shape[1] - num_mandatory_samples),)
-    neg_samples = torch.multinomial(neg_sample_weights, num_negative_samples)  # can use 'generator' parameter for reproducible randomness
-    neg_sample_indices = neg_samples + num_mandatory_samples
-
-    neg_sample_embeddings_mat = cache.embeddings_mat[:, neg_sample_indices]
-
-    # populate rest of denominator with neg samples
-    denominator = denominator + torch.sum(output_style_embedding.T @ neg_sample_embeddings_mat)
-
-    loss = -torch.log(numerator) + torch.log(denominator)
-
-    return loss
 
 
 class StyleTransfer:
@@ -178,7 +154,13 @@ class StyleTransfer:
         prev_loss = float('inf')
         best_loss = float('inf')
 
-        output_style_embedding = copy.deepcopy(self.content_sample.input_feature).cuda()
+        self.asr.eval()
+        self.asr.droupout_enable = False
+        self.asr.requires_grad_(False)
+        output_style_embedding = self.asr.get_style_embedding(self.content_sample)
+
+        output_style_embedding = torch.clone(output_style_embedding.T).detach()
+        print('output_style_embedding_shape', output_style_embedding.shape)
 
         optimizer = optim.Adam(params=
             [output_style_embedding]
@@ -195,6 +177,7 @@ class StyleTransfer:
             optimizer.zero_grad()
 
             loss = self.loss_func(output_style_embedding, self.sample_cache, self.num_negative_samples)
+            print('LOSS', loss, prev_loss, best_loss)
 
             loss.backward()
             optimizer.step()
@@ -213,13 +196,15 @@ class StyleTransfer:
             }, step)
             prev_loss = curr_loss
 
+        return output_style_embedding
+
 
     def analyze(self):
         content_mels = copy.deepcopy(self.content_sample.input_feature)
         content_mean = self.content_sample.input_mean
         content_std = self.content_sample.input_std
         pretransfer_utterance = get_utterance(self.asr, self.content_sample)
-        self.optimize()
+        output_style_embedding = self.optimize()
         posttransfer_utterance = get_utterance(self.asr, self.content_sample)
 
         content_mels = content_mels[0, :self.content_sample.input_length.long().item(), :]
@@ -234,6 +219,7 @@ class StyleTransfer:
             'posttransfer_mels': posttransfer_mels,
             'content_mean': content_mean,
             'content_std': content_std,
+            'output_style_embedding': output_style_embedding
         }
 
 
