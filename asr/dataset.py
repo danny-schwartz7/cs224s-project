@@ -63,8 +63,8 @@ class ItemClass(NamedTuple):
   def my_cuda(self):
     return ItemClass(
       self.input_feature.cuda(),
-      self.input_mean.cuda(),
-      self.input_std.cuda(),
+      self.input_mean.cuda() if hasattr(self.input_mean, 'cuda') else self.input_mean,
+      self.input_std.cuda() if hasattr(self.input_mean, 'cuda') else self.input_std,
       self.input_length,
       self.input_path,
       self.human_transcript_label.cuda(),
@@ -75,8 +75,8 @@ class ItemClass(NamedTuple):
   def my_cpu(self):
     return ItemClass(
       self.input_feature.cpu(),
-      self.input_mean.cpu(),
-      self.input_std.cpu(),
+      self.input_mean.cpu() if hasattr(self.input_mean, 'cpu') else self.input_mean,
+      self.input_std.cpu() if hasattr(self.input_mean, 'cpu') else self.input_std,
       self.input_length,
       self.input_path,
       self.human_transcript_label.cpu(),
@@ -87,8 +87,8 @@ class ItemClass(NamedTuple):
   def my_to(self, device):
     return ItemClass(
       self.input_feature.to(device),
-      self.input_mean.to(device),
-      self.input_std.to(device),
+      self.input_mean.to(device) if hasattr(self.input_mean, 'to') else self.input_mean,
+      self.input_std.to(device) if hasattr(self.input_mean, 'to') else self.input_std,
       self.input_length,
       self.input_path,
       self.human_transcript_label.to(device),
