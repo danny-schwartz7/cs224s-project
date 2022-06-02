@@ -25,9 +25,6 @@ def get_ctc_loss(
   targets = targets.long()
   input_lengths = input_lengths.long()
   target_lengths = target_lengths.long()
-  ############################ START OF YOUR CODE ############################
-  # TODO(2.1)
-  # Hint:
   # - `F.ctc_loss`: https://pytorch.org/docs/stable/nn.functional.html#ctc-loss
   # - log_probs is passed in with shape (batch_size, input_length, num_classes).
   # - Notice that `F.ctc_loss` expects log_probs of shape
@@ -39,7 +36,6 @@ def get_ctc_loss(
       target_lengths, blank=blank, reduction='none', zero_infinity=True)
   )
   
-  ############################# END OF YOUR CODE #############################
   return ctc_loss
 
 class CTCEncoderDecoder(nn.Module):
@@ -92,20 +88,6 @@ class CTCEncoderDecoder(nn.Module):
         inputs, input_lengths.cpu(), batch_first=True, enforce_sorted=False)
     log_probs = None
     h, c = None, None
-    ############################ START OF YOUR CODE ############################
-    # TODO(2.1)
-    # Hint:
-    # - Refer to https://pytorch.org/docs/stable/nn.html
-    # - Use `self.encoder` to get the encodings output which is of shape
-    #   (batch_size, max_length, num_directions*hidden_dim) and the
-    #   hidden states and cell states which are both of shape
-    #   (batch_size, num_layers*num_directions, hidden_dim)
-    # - Pad outputs with `0.` using `torch.nn.utils.rnn.pad_packed_sequence`
-    #   (turn on batch_first and set total_length as max_length).
-    # - Apply 50% dropout.
-    # - Use `self.decoder` to take the embeddings sequence and return
-    #   probabilities for each character.
-    # - Make sure to then convert to log probabilities.
 
     encodings, (h, c) = self.encoder(inputs)
     encodings, lens_unpacked = torch.nn.utils.rnn.pad_packed_sequence(
@@ -114,8 +96,6 @@ class CTCEncoderDecoder(nn.Module):
       encodings = F.dropout(encodings, 0.5, training=self.training)
     vals = self.decoder(encodings)
     log_probs = F.log_softmax(vals, dim=-1)
-
-    ############################# END OF YOUR CODE #############################
     
     # The extracted embedding is not used for the ASR task but will be
     # needed for other auxiliary tasks.

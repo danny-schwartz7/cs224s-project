@@ -128,9 +128,6 @@ class JointCTCAttention(LASEncoderDecoder):
         ctc_log_probs = None
         las_log_probs = None
         h, c = None, None
-        ############################ START OF YOUR CODE ############################
-        # TODO(5.1)
-        # Hint:
         # - Encode the inputs with the `listener` network and decode
         #   transcription probabilities using both the `speller` network
         #   and CTCDecoder network.
@@ -142,7 +139,6 @@ class JointCTCAttention(LASEncoderDecoder):
         ctc_input = listener_outputs
         ctc_log_probs = self.ctc_decoder(ctc_input)
 
-        ############################# END OF YOUR CODE #############################
         listener_hc = self.combine_h_and_c(h, c)
         return ctc_log_probs, las_log_probs, listener_hc
 
@@ -193,13 +189,7 @@ class LightningCTCMTL(LightningCTC):
         self.asr_weight = asr_weight
         self.speaker_id_weight = speaker_id_weight
 
-        ############################ START OF YOUR CODE ############################
-        # TODO(4.3)
-        # Instantiate your auxiliary task models here.
-
         self.speaker_id_model = SpeakerIdClassifier(self.model.embedding_dim, EFFECTIVE_NUM_SPEAKERS)
-
-        ############################# END OF YOUR CODE #############################
 
     def create_datasets(self):
         train_dataset = LibriDatasetAdapter(
@@ -235,8 +225,6 @@ class LightningCTCMTL(LightningCTC):
 
         # Note: Not all of these have to be used (it is up to your design)
         speaker_id_log_probs = None
-        ############################ START OF YOUR CODE ############################
-        # TODO(4.3)
         # Implement multi-task learning by combining multiple objectives.
         # Define `combined_loss` here.
 
@@ -252,15 +240,7 @@ class LightningCTCMTL(LightningCTC):
         combined_loss = self.asr_weight * asr_loss + \
                         self.speaker_id_weight * speaker_loss
 
-        ############################ END OF YOUR CODE ##############################
-
         with torch.no_grad():
-            ############################ START OF YOUR CODE ##########################
-            # TODO(4.3)
-            # No additional code is required here. :)
-            # We provide how to compute metrics for all possible auxiliary tasks and
-            # store them in your metrics dictionary. Comment out the metrics for tasks
-            # you do not plan to use.
 
             # TASK_TYPE: Compare predicted task type to true task type.
             speaker_id_preds = torch.argmax(speaker_id_log_probs, dim=1)
@@ -300,10 +280,6 @@ class LightningCTCMTL(LightningCTC):
         return metrics
 
     def validation_epoch_end(self, outputs):
-        ############################ START OF YOUR CODE ############################
-        # TODO(4.3)
-        # No additional code is required here. :)
-        # Comment out the metrics for tasks you do not plan to use.
         metrics = {
             'val_asr_loss': torch.tensor([elem['val_asr_loss']
                                           for elem in outputs]).float().mean(),
@@ -314,9 +290,6 @@ class LightningCTCMTL(LightningCTC):
             'val_speaker_id_acc': torch.tensor([elem['val_speaker_id_acc']
                                                for elem in outputs]).float().mean(),
         }
-        ############################# END OF YOUR CODE #############################
-        # self.log('val_asr_loss', metrics['val_asr_loss'], prog_bar=True)
-        # self.log('val_asr_cer', metrics['val_asr_cer'], prog_bar=True)
         self.log_dict(metrics)
 
     def test_step(self, batch, batch_idx):
@@ -324,10 +297,6 @@ class LightningCTCMTL(LightningCTC):
         return metrics
 
     def test_epoch_end(self, outputs):
-        ############################ START OF YOUR CODE ############################
-        # TODO(4.3)
-        # No additional code is required here. :)
-        # Comment out the metrics for tasks you do not plan to use.
         metrics = {
             'test_asr_loss': torch.tensor([elem['test_asr_loss']
                                            for elem in outputs]).float().mean(),
@@ -338,9 +307,6 @@ class LightningCTCMTL(LightningCTC):
             'test_speaker_id_acc': torch.tensor([elem['test_speaker_id_acc']
                                                 for elem in outputs]).float().mean(),
         }
-        ############################# END OF YOUR CODE #############################
-        # self.log('test_asr_loss', metrics['test_asr_loss'], prog_bar=True)
-        # self.log('test_asr_cer', metrics['test_asr_cer'], prog_bar=True)
         self.log_dict(metrics)
 
     def get_style_embedding(self, batch, split='train'):
